@@ -1,10 +1,18 @@
 package converter;
 
+import java.util.Scanner;
+
 public class Main {
     public static void main(String[] args) {
-        System.out.println(Converter.XMLToJSON("<host>127.0.0.1</host>"));
-        System.out.println(Converter.XMLToJSON("<jdk>1.8.9</jdk>"));
-        System.out.println(Converter.XMLToJSON("<success/>"));
-        System.out.println(Converter.XMLToJSON("<storage/>"));
+
+        Scanner scanner = new Scanner(System.in);
+        String input = scanner.nextLine();
+
+        if (input.matches("<.*")) {
+            System.out.println(Converter.XMLToJSON(input));
+        } else if (input.matches("\\{.*")) {
+            System.out.println(Converter.JSONToXML(input));
+        }
+
     }
 }
