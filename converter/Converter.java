@@ -55,21 +55,7 @@ public class Converter {
 
     public static String JSONToXML(String jsonContents) {
 
-        if (jsonContents.matches(emptyValueRegex)) {
-            String key = jsonContents.replaceAll(":.*", "")
-                    .substring(1)
-                    .replaceAll("\"", "")
-                    .trim();
-            return String.format("<%s/>", key);
-        } else if (jsonContents.matches(keyValueRegex)) {
-            String[] keyValue = jsonContents.replaceAll("[{}]", "")
-                    .split(":");
-
-            String key = keyValue[0].trim().replaceAll("\"", "");
-            String value = keyValue[1].trim().replaceAll("\"", "");
-
-            return String.format("<%s>%s</%s>", key, value, key);
-        } else if (jsonContents.contains("#")){
+        if (jsonContents.contains("#")){
             String key = jsonContents.split(": \\{")[0].replaceAll("[\\{\"]", "").trim();
             String attributes = getJSONAttributes(jsonContents);
             String value = jsonContents.split("#")[1]
@@ -83,6 +69,20 @@ public class Converter {
                 return String.format("<%s %s>%s</%s>", key, attributes, value, key);
             }
 
+        } else if (jsonContents.matches(emptyValueRegex)) {
+            String key = jsonContents.replaceAll(":.*", "")
+                    .substring(1)
+                    .replaceAll("\"", "")
+                    .trim();
+            return String.format("<%s/>", key);
+        } else if (jsonContents.matches(keyValueRegex)) {
+            String[] keyValue = jsonContents.replaceAll("[{}]", "")
+                    .split(":");
+
+            String key = keyValue[0].trim().replaceAll("\"", "");
+            String value = keyValue[1].trim().replaceAll("\"", "");
+
+            return String.format("<%s>%s</%s>", key, value, key);
         } else {
             return "<>";
         }
@@ -118,13 +118,12 @@ public class Converter {
                 continue;
             }
             String[] keyValue = att.split("\s*:\s*");
-            String key = keyValue[0].replaceAll("[\"@]", "");
-            String value = keyValue[1].replaceAll("\"", "");
-            sb.append(String.format("%s = \"%s\", ", key, value));
+            String key = keyValue[0].replaceAll("[\"@,]", "").trim();
+            String value = keyValue[1].replaceAll("\"", "").trim();
+            sb.append(String.format("%s = \"%s\" ", key, value));
         }
 
         return sb.deleteCharAt(sb.length() - 1)
-                .deleteCharAt(sb.length() - 1)
                 .toString();
     }
 }
