@@ -8,16 +8,11 @@ public class Main {
     public static void main(String[] args) throws FileNotFoundException {
 
         Scanner scanner = new Scanner(new File("test.txt"));
-        String input  = "";
+        StringBuilder input  = new StringBuilder();
         while (scanner.hasNext()) {
-            input += scanner.nextLine();
+            input.append(scanner.nextLine());
         }
 
-        if (input.matches("<.*")) {
-            System.out.println(Converter.XMLToJSON(input));
-        } else {
-            System.out.println(Converter.JSONToXML(input));
-        }
-
+        System.out.println(Converter.parseXML(input.toString()));
     }
 }
