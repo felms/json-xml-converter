@@ -1,100 +1,19 @@
 package converter;
 
+import model.Element;
+
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Converter {
 
-    private static final String elementRegex = "<.*>.*<\\/.*>";
-    private static final String emptyElementRegex = "<.*\\/>";
     private static final String xmlWithAttributes = "<.*\\s.*=.+>";
 
-    private static final String emptyValueRegex = "\\{.*(null)\\}";
-    private static final String keyValueRegex = "\\{.*\\}";
-
-
-    public static String XMLToJSON(String xmlContents) {
-
-        if (xmlContents.matches(emptyElementRegex)) {
-
-            if (xmlContents.matches(xmlWithAttributes)) {
-
-                String tag = xmlContents.replaceAll("[<\\/>]", "").split("\s+")[0];
-                String attributes = getXMLAttributes(xmlContents);
-
-                return "{" +
-                        String.format("\"%s\" : {", tag) +
-                        attributes +
-                        String.format("\"#%s\" : null}}", tag);
-
-            } else {
-                String s = xmlContents.substring(0, xmlContents.length() - 2).substring(1);
-                return String.format("{\"%s\": null}", s);
-            }
-
-        } else if (xmlContents.matches(elementRegex)) {
-
-            if (xmlContents.matches(xmlWithAttributes)) {
-
-                String tag = xmlContents.replaceAll("[<\\/>]", "").split("\s+")[0];
-                String contents = xmlContents.replaceAll("<\\/.*>", "").replaceAll("<.*>", "");
-                String attributes = getXMLAttributes(xmlContents);
-
-                return "{" +
-                        String.format("\"%s\" : {", tag) +
-                        attributes +
-                        String.format("\"#%s\" : \"%s\"}}", tag, contents);
-
-            } else {
-                String tag = xmlContents.substring(1).replaceAll(">.*", "");
-                String contents = xmlContents.replaceAll("<\\/.*>", "").replaceAll("<.*>", "");
-
-                return String.format("{\"%s\": \"%s\"}", tag, contents);
-            }
-        } else {
-            return "{}";
-        }
-    }
-
-    public static String JSONToXML(String jsonContents) {
-
-        if (jsonContents.contains("#")){
-            String key = jsonContents.split(": \\{")[0].replaceAll("[\\{\"]", "").trim();
-            String attributes = getJSONAttributes(jsonContents);
-            String value = jsonContents.split("#")[1]
-                    .replaceAll("[\\}\"]", "")
-                    .split(":")[1]
-                    .trim();
-
-            if (value.equals("null")) {
-                return String.format("<%s %s />", key, attributes);
-            } else {
-                return String.format("<%s %s>%s</%s>", key, attributes, value, key);
-            }
-
-        } else if (jsonContents.matches(emptyValueRegex)) {
-            String key = jsonContents.replaceAll(":.*", "")
-                    .substring(1)
-                    .replaceAll("\"", "")
-                    .trim();
-            return String.format("<%s/>", key);
-        } else if (jsonContents.matches(keyValueRegex)) {
-            String[] keyValue = jsonContents.replaceAll("[{}]", "")
-                    .split(":");
-
-            String key = keyValue[0].trim().replaceAll("\"", "");
-            String value = keyValue[1].trim().replaceAll("\"", "");
-
-            return String.format("<%s>%s</%s>", key, value, key);
-        } else {
-            return "<>";
-        }
-    }
 
     public static String parseXML(String xmlContents) {
-
 
         // Read the tags/elements
         StringBuilder sb = new StringBuilder();
@@ -122,8 +41,6 @@ public class Converter {
 
         while (!xmlTagsAndElements.isEmpty()) {
             String node = xmlTagsAndElements.poll().trim();
-            //System.out.println("Nodes: ");
-            //System.out.println(node);
 
             if (node.matches("<\\/.+>") && !path.isEmpty()) {
                 path.remove(path.size() - 1);
@@ -202,6 +119,57 @@ public class Converter {
         return sb.toString().trim();
     }
 
+    public static String parseJSON(String jsonContents) {
+
+        List<Element> elements = new ArrayList<>();
+
+        // Read the tags/elements
+        StringBuilder sb = new StringBuilder();
+        Deque<String> json = new ArrayDeque<>(List.of(jsonContents.split("")));
+        List<String> path = new ArrayList<>();
+
+        while (!json.isEmpty()) {
+
+            if (json.peek().equals("{") && sb.isEmpty()) {
+                json.poll();
+            } else if (json.peek().equals(":")) {
+                path.add(sb.toString().trim());
+                sb = new StringBuilder();
+                json.poll();
+            } else if (json.peek().equals("}") && sb.toString().trim().isBlank()) {
+                path.remove(path.size() - 1);
+                json.poll();
+            } else if (json.peek().equals("}") && !sb.toString().trim().isBlank()) {
+                String value = sb.toString().trim();
+                elements.add(new Element(
+                        String.join(", ", path),
+                        value
+                ));
+                sb = new StringBuilder();
+                path.remove(path.size() - 1);
+                json.poll();
+            } else if (json.peek().equals(",")) {
+                String value = sb.toString().trim();
+                elements.add(new Element(
+                        String.join(", ", path),
+                        value
+                ));
+                sb = new StringBuilder();
+                path.remove(path.size() - 1);
+                json.poll();
+            } else if (json.peek().equals("{") && !sb.isEmpty()) {
+                elements.add(new Element(String.join(", ", path)));
+                sb = new StringBuilder();
+                json.poll();
+            } else {
+                sb.append(json.poll());
+            }
+        }
+
+        return elements.stream()
+                .map(Element::toString)
+                .collect(Collectors.joining("\n"));
+    }
     private static String getXMLAttributes(String xmlContents) {
         String attributes = xmlContents.replaceAll("<[\\w]+\\s+|\\/>|>", "");
         String[] attributesArray = attributes.replaceAll("\"", "")
@@ -217,27 +185,4 @@ public class Converter {
         return sb.toString().trim();
     }
 
-    private static String getJSONAttributes(String jsonContents) {
-
-        String attributes = jsonContents.split(": \\{")[1]
-                .split("#")[0]
-                .replaceAll("\\{", "")
-                .trim();
-        String[] attributesArray = attributes.split(",");
-        StringBuilder sb = new StringBuilder();
-
-        for (String s : attributesArray) {
-            String att = s.replaceAll("\"", "").trim();
-            if (att.isEmpty()) {
-                continue;
-            }
-            String[] keyValue = att.split("\s*:\s*");
-            String key = keyValue[0].replaceAll("[\"@,]", "").trim();
-            String value = keyValue[1].replaceAll("\"", "").trim();
-            sb.append(String.format("%s = \"%s\" ", key, value));
-        }
-
-        return sb.deleteCharAt(sb.length() - 1)
-                .toString();
-    }
 }
