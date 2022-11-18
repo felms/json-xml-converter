@@ -1,3 +1,15 @@
+Na boa, larguei mão desse projeto.
+Até a etapa 3 de 6 eu estava aprendendo e fazendo coisas legais
+da etapa 4 pra frente as tarefas eram sobre fazer parse em formatos
+de arquivo que de JSON tinham apenas o nome, com tags malucas inventadas
+por eles e edge cases também inventados propositalmente só para serem dificeis.
+
+Eu deveria ter olhado a nota do projeto antes, esse é o que tem a pior avaliação 
+na plataforma, todo mundo concorda que ele não vale a pena.
+
+O tempo gasto e o custo benefício desse troço são horriveis.
+
+
 # JSON - XML Converter
 Praticas do Jetbrains Academy: Projeto JSON - XML Converter
 
